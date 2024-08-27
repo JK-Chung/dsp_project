@@ -2,7 +2,6 @@ import math
 import random
 import numpy as np
 
-# TODO Complete
 def generate_awgn_signal(desired_power, no_desired_samples):
   no_spectra = no_desired_samples
 
@@ -11,11 +10,19 @@ def generate_awgn_signal(desired_power, no_desired_samples):
 
   noise_frequency_spectra_magnitude = math.sqrt(desired_power / no_spectra)
 
-  noise_frequency_spectrum = _generate_random_complex_numbers(noise_frequency_spectra_magnitude, no_spectra) # for AWGN, magnitude has to be kept constant. However, phases must be uniformly distrubed. If phases are constant, then the iFFT would give you Dirac's function instead (https://www.reddit.com/r/askscience/comments/6tedvr/comment/dlki29e/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button) 
-  return np.fft.ifft(noise_frequency_spectrum) # I'm surprised that the result of this is all real-valued. I thought I would need to make sure matching-spectra pairs had opposing phases
+  noise_frequency_spectrum = [0] * no_spectra
+  noise_frequency_spectrum[0] = 0 # Set DC Offset to 0
 
-def _generate_random_complex_numbers(desired_magnitude, desired_no_complex_numbers):
-  return [_generate_random_complex_number(desired_magnitude) for ignored in range(desired_no_complex_numbers)]
+  # for AWGN, magnitude has to be kept constant. However, phases must be uniformly distrubed. If phases are constant, then the iFFT would give you Dirac's function instead (https://www.reddit.com/r/askscience/comments/6tedvr/comment/dlki29e/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button) 
+  # Additional, matching positive/negative frequency pairs must be conjugates of one another to ensure the combined frequency of these complex exponentials is real-valued
+  for i in range(1, no_spectra // 2):
+    random_complex_number = _generate_random_complex_number(noise_frequency_spectra_magnitude)
+    noise_frequency_spectrum[i] = random_complex_number
+    noise_frequency_spectrum[no_spectra - i] = random_complex_number.conjugate()
+    
+  time_domain_signal = np.fft.ifft(noise_frequency_spectrum)
+  return np.real(time_domain_signal) # ifft result should be real-valued but taking the absolute here to take into account any 
+
 
 def _generate_random_complex_number(desired_magnitude):
   real_component = 2 * desired_magnitude * random.random() - desired_magnitude # real_component range doubled to allow for negative real_component
